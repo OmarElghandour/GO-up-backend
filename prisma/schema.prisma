@@ -15,26 +15,29 @@ model User {
   id Int  @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  email String
+  password String  @default("")
+  email String @unique
   hash String
   firstName String?
   lastName String?
+  tasks Task[]
 }
 
-
-model Post {
+model Task {
   id Int  @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  title String
-  description String?
+  goalId Int 
+  date DateTime 
+  startTime DateTime
+  endTime DateTime
+  userId  Int?
+  user    User?    @relation(fields: [userId], references: [id])
+  goal    Goal     @relation(fields: [goalId], references: [id])
 }
 
-
-model progress {
+model Goal {
   id Int  @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  title String
-  description String?
+  name String
+  tasks Task[]
 }

@@ -1,8 +1,13 @@
 'use client';
+import { PrismaClient } from '@prisma/client';
+import { getSession, useSession } from 'next-auth/react';
+import { AppProps } from 'next/app';
 import React, { useState, FormEvent, useEffect } from 'react';
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { User } from '@prisma/client'; // Import User type from Prisma
 
+const prisma = new PrismaClient();
 
 type Task = {
   id: string,
@@ -10,16 +15,41 @@ type Task = {
   description: string;
   startDate: string;
   endDate: string;
-  [key: string]: string;
+  title : string;
+  user : User
 };
 
-export default function Page() {
+type Users = {
+  name: string | undefined | null;
+  email: string | undefined | null;
+}
+
+export default function Page({pageProps }: AppProps) {
+
+
+
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [tasks, setTasks] = useState<Task[]>([]);
   const [task, setTask]  = useState<Task | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [user, setUser]  = useState<string | null>(null);
+  const [error, setError] = useState<string | undefined>(undefined);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
+  const [userSession, setuserSession] = useState<any>(null);
+
+  const { data: session } = useSession();
+
+
+  useEffect(() => {
+    if (session && session.user) {
+      const newUser = {
+        email: session.user.email,
+        name: session.user.name
+      };
+      // console.log(newUser);
+      setuserSession(session?.user);
+    }
+  }, [session]);
 
   const [inputFields, setInputFields] = useState({
      name : '',
@@ -27,19 +57,48 @@ export default function Page() {
    });
 
    useEffect(() => {
-     console.log(tasks);
-   },[tasks]);
+    if (userSession?.email) {
+
+      console.log(userSession);
+
+      (async () => {
+        const response = await fetch('/api/user/', {
+          method: 'POST',
+          body: JSON.stringify( {
+            email: userSession?.email,
+          })
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to submit the data. Please try again.')
+        }
+
+
+        // Handle response if necessary
+        const data = await response.json();
+        console.log(data);
+      }
+        
+      )();
+    }
+   },[user]);
 
   const createTask = (event: FormEvent<HTMLFormElement>) => {
+
+    console.log(inputFields);
     // Create a new object with a unique id
     const newObject: Task = {
       id: Math.random().toString(),
+      title : inputFields.name,
       name: inputFields.name,
       description: inputFields.description,
       startDate : new Date(startDate).getTime().toString(),
-      endDate : new Date(startDate).getTime().toString()
+      endDate : new Date(startDate).getTime().toString(),
+      user : user
     };
 
+    console.log('==========================');
+    setTask(newObject);
     // Use the callback form of setState to ensure you are working with the latest state
     setTasks((prevArray) => [...prevArray, newObject]);
   };
@@ -63,9 +122,12 @@ export default function Page() {
     try {
       createTask(event);
 
-      const response = await fetch('/api/submit', {
+
+      console.log('----------------------------');
+
+      const response = await fetch('/api/task/create', {
         method: 'POST',
-        body: JSON.stringify({ tasks }),
+        body: JSON.stringify(task),
       })
  
       if (!response.ok) {
@@ -134,7 +196,7 @@ export default function Page() {
                   focus:outline-none focus:ring-indigo-500
                   focus:border-indigo-500 focus:z-10 sm:text-sm"
                   placeholder="description"
-                  onChange={event => handleFormChange(event)}
+                  onChange={event => handleFormChange(event as any)}
                 />
               </div>
             </div>
@@ -157,7 +219,14 @@ export default function Page() {
                 <label htmlFor="endDate">
                     End Date
                 </label>
-                <DatePicker id="endDate" showTimeSelect selected={endDate} onChange={(date: React.SetStateAction<Date>) => setEndDate(date)} />
+                <DatePicker
+                 selected={endDate} 
+                 onChange={(date: React.SetStateAction<Date>) => setEndDate(date)}
+                 dateFormat="MM/dd/yyyy h:mm aa"
+                 id="endDate" 
+                 timeInputLabel="Time:"
+                 showTimeInput
+                />
             </div>
 
             <div>

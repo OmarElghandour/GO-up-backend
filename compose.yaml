@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  app:
+    container_name: frontend
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+
+  postgres:
+    image: postgres:latest
+    container_name: mypostgrescontainer
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: super$$user##test
+      POSTGRES_DB: mydatabase
+      DATABASE_URL: postgres://postgres:super$$user##test@postgres:5432/mydatabase
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin4_container
+    restart: always
+    ports:
+      - "8888:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: user-name@domain-name.com
+      PGADMIN_DEFAULT_PASSWORD: strong-password
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+volumes:
+  postgres_data:
+  pgadmin-data:

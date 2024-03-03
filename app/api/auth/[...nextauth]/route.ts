@@ -21,7 +21,6 @@ const handler =  NextAuth({
           },
           async authorize(credentials: any, _req: any) {
             // Add logic here to look up the user from the credentials supplied
-            console.log(_req.body);
             const user = await prisma.user.findUnique({where: {email: _req.body.email}});
 
             if (!user) {

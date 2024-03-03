@@ -16,23 +16,17 @@ type Task = {
   startDate: string;
   endDate: string;
   title : string;
-  user : User
+  user : User | null
 };
 
-type Users = {
-  name: string | undefined | null;
-  email: string | undefined | null;
-}
-
-export default function Page({pageProps }: AppProps) {
 
 
-
+export default function Page({pageProps }: AppProps) {  
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [tasks, setTasks] = useState<Task[]>([]);
   const [task, setTask]  = useState<Task | null>(null);
-  const [user, setUser]  = useState<string | null>(null);
-  const [error, setError] = useState<string | undefined>(undefined);
+  const [user, setUser]  = useState<User | null>(null);
+  const [error, setError] = useState<string | null | undefined>(undefined);
   const [startDate, setStartDate] = useState(new Date());
   const [endDate, setEndDate] = useState(new Date());
   const [userSession, setuserSession] = useState<any>(null);
@@ -46,8 +40,23 @@ export default function Page({pageProps }: AppProps) {
         email: session.user.email,
         name: session.user.name
       };
-      // console.log(newUser);
-      setuserSession(session?.user);
+      setuserSession(session?.user);  
+        (async () => {
+          const email = session?.user?.email || '';
+          const response = await fetch('/api/user/?email=' + email?.toString(), {
+            method: 'GET',
+          });
+          
+          if (!response.ok) {
+            throw new Error('Failed to submit the data. Please try again.')
+          }
+            
+          // Handle response if necessary
+          const data = await response.json();
+          setUser(data);
+        }
+          
+        )();
     }
   }, [session]);
 
@@ -56,74 +65,32 @@ export default function Page({pageProps }: AppProps) {
      description : ''
    });
 
-   useEffect(() => {
-    if (userSession?.email) {
-
-      console.log(userSession);
-
-      (async () => {
-        const response = await fetch('/api/user/', {
-          method: 'POST',
-          body: JSON.stringify( {
-            email: userSession?.email,
-          })
-        })
-        
-        if (!response.ok) {
-          throw new Error('Failed to submit the data. Please try again.')
-        }
-
-
-        // Handle response if necessary
-        const data = await response.json();
-        console.log(data);
-      }
-        
-      )();
-    }
-   },[user]);
 
   const createTask = (event: FormEvent<HTMLFormElement>) => {
 
-    console.log(inputFields);
     // Create a new object with a unique id
     const newObject: Task = {
       id: Math.random().toString(),
       title : inputFields.name,
       name: inputFields.name,
       description: inputFields.description,
-      startDate : new Date(startDate).getTime().toString(),
-      endDate : new Date(startDate).getTime().toString(),
+      startDate : new Date(startDate).toISOString(),
+      endDate : new Date(endDate).toISOString(),
       user : user
     };
 
-    console.log('==========================');
     setTask(newObject);
     // Use the callback form of setState to ensure you are working with the latest state
     setTasks((prevArray) => [...prevArray, newObject]);
   };
 
-
-  useEffect(() => {
-    console.log(tasks);
-  },[tasks])
-
-  useEffect(() => {
-    console.log(inputFields);
-  },[inputFields]);
-
-
   async function onSubmit(event: any) {
     event.preventDefault()
     setIsLoading(true)
-    setError(null) // Clear previous errors when a new request starts
- 
-    console.log(event.target.value);
+    setError(null) // Clear previous errors when a new request starts 
     try {
       createTask(event);
 
-
-      console.log('----------------------------');
 
       const response = await fetch('/api/task/create', {
         method: 'POST',
@@ -141,7 +108,6 @@ export default function Page({pageProps }: AppProps) {
     } catch (error: any) {
       // Capture the error message to display to the user
       // setError(error.message)
-      console.error(error)
     } finally {
       setIsLoading(false)
     }
